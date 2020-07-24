@@ -5,6 +5,7 @@ use SwoStar\Container\Container;
 use SwoStar\Routes\Route;
 
 use SwoStar\Server\Http\HttpServer;
+use SwoStar\Server\WebSocket\WebSocketServer;
 
 class Application extends Container
 {
@@ -24,16 +25,16 @@ class Application extends Container
             $this->setBasePath($path);
         }
         $this->registerBaseBindings();
-        $this->init();
+//        $this->init();
 
         dd(self::SWOSTAR_WELCOME, "启动项目");
     }
 
     public function run()
     {
-        $httpServer = new HttpServer($this);
+        $server = new WebSocketServer($this);
         // $httpServer->watchFile(true);
-        $httpServer->start();
+        $server->start();
     }
 
     public function registerBaseBindings()
@@ -41,8 +42,9 @@ class Application extends Container
         self::setInstance($this);
         $binds = [
             // 标识  ， 对象
-            'index'       => (new \SwoStar\Index()),
-            'httpRequest' => (new \SwoStar\Message\Http\Request()),
+            'config'      => (new \SwoStar\Config\Config())
+            /*'index'       => (new \SwoStar\Index()),
+            'httpRequest' => (new \SwoStar\Message\Http\Request()),*/
         ];
         foreach ($binds as $key => $value) {
             $this->bind($key, $value);
@@ -51,7 +53,7 @@ class Application extends Container
 
     public function init()
     {
-        $this->bind('route', Route::getInstance()->registerRoute());
+//        $this->bind('route', Route::getInstance()->registerRoute());
     }
 
     public function setBasePath($path)

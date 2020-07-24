@@ -1,9 +1,9 @@
 <?php
 namespace SwoStar\Server;
 
-use SwoStar\Supper\Inotify;
 use Swoole\Server as SwooleServer;
 use SwoStar\Foundation\Application;
+//use SwoStar\RPC\Rpc;
 
 /**
  * 所有服务的父类， 写一写公共的操作
@@ -21,15 +21,23 @@ abstract class Server
 
     protected $inotify = null;
 
-    protected $port = 9900;
+    protected $port;
 
-    protected $host = "0.0.0.0";
+    protected $host;
+
+    protected $process;
 
     protected $watchFile = false;
-
-    protected $config = [
-        'task_worker_num' => 0,
-    ];
+    /**
+     * 用于记录系统pid的信息
+     * @var string
+     */
+    protected $pidFile = "/runtime/swostar.pid";
+    /**
+     * 这是swoole服务的配置
+     * @var [type]
+     */
+    protected $config = [];
     /**
      * 用于记录pid的信息
      * @var array
@@ -75,35 +83,44 @@ abstract class Server
     public function __construct(Application $app )
     {
         $this->app = $app;
+        $this->initSetting();
+        // 1. 创建 swoole server
+        $this->createServer();
+        // 3. 设置需要注册的回调函数
+        $this->initEvent();
+        // 4. 设置swoole的回调函数
+        $this->setSwooleEvent();
     }
     /**
      * 创建服务
-     * 六星教育 @shineyork老师
+     *
      */
     protected abstract function createServer();
     /**
      * 初始化监听的事件
-     * 六星教育 @shineyork老师
+     *
      */
     protected abstract function initEvent();
     // 通用的方法
 
     public function start()
     {
-        // 1. 创建 swoole server
-        $this->createServer();
+//        $config = app('config');
         // 2. 设置配置信息
         $this->swooleServer->set($this->config);
-        // 3. 设置需要注册的回调函数
-        $this->initEvent();
-        // 4. 设置swoole的回调函数
-        $this->setSwooleEvent();
+        /*if ($config->get('server.http.tcpable')) {
+            new Rpc($this->swooleServer, $config->get('server.http.rpc'));
+        }*/
         // 5. 启动
         $this->swooleServer->start();
     }
+
+
+
+    protected abstract function initSetting();
     /**
      * 设置swoole的回调事件
-     * 六星教育 @shineyork老师
+     *
      */
     protected function setSwooleEvent()
     {
@@ -113,7 +130,7 @@ abstract class Server
             }
         }
     }
-    protected function watchEvent()
+   /* protected function watchEvent()
     {
         return function($event){
             // $action = 'file:';
@@ -134,17 +151,17 @@ abstract class Server
             // echo "因为什么重启";
             $this->swooleServer->reload();
         };
-    }
+    }*/
     // 回调方法
     public function onStart(SwooleServer $server)
     {
         $this->pidMap['masterPid'] = $server->master_pid;
         $this->pidMap['managerPid'] = $server->manager_pid;
 
-        if ($this->watchFile ) {
+        /*if ($this->watchFile ) {
             $this->inotify = new Inotify($this->app->getBasePath(), $this->watchEvent());
             $this->inotify->start();
-        }
+        }*/
     }
 
     public function onManagerStart(SwooleServer $server)

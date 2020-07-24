@@ -1,11 +1,10 @@
 <?php
 namespace SwoStar\Server\Http;
 
-use SwoStar\Message\Http\Request as HttpRequest;
-use SwoStar\Server\Server;
-use Swoole\Http\Server as SwooleServer;
 use Swoole\Http\Request as SwooleRequest;
 use Swoole\Http\Response as SwooleResponse;
+use Swoole\Http\Server as SwooleServer;
+use SwoStar\Server\Server;
 
 /**
  * http server
@@ -15,12 +14,21 @@ class HttpServer extends Server
     public function createServer()
     {
         $this->swooleServer = new SwooleServer($this->host, $this->port);
+
+//        Input::info('http server 访问 : http://192.168.186.130:'.$this->port );
     }
 
     protected function initEvent(){
         $this->setEvent('sub', [
             'request' => 'onRequest',
         ]);
+    }
+    protected function initSetting()
+    {
+        $config = app('config');
+        $this->port = $config->get('http.port');
+        $this->host = $config->get('http.host');
+        $this->config = $config->get('http.swoole');
     }
 
     // onRequest
@@ -31,10 +39,19 @@ class HttpServer extends Server
         if ($uri == '/favicon.ico') {
             $response->status(404);
             $response->end('');
+            return null;
         }
-        $httpRequest = HttpRequest::init($request);
-        dd($httpRequest->getMethod(), "Method");
-        dd($httpRequest->getUriPath(), "UriPath");
-        $response->end("<h1>Hello swostar</h1>");
+
+        // http://127.0.0.1:9000/index
+
+//        $httpRequest = HttpRequest::init($request);
+
+        // dd($httpRequest->getMethod(), "Method");
+        // dd($httpRequest->getUriPath(), "UriPath"); //   /index
+
+        // 执行控制器的方法
+//        $return = app('route')->setFlag('Http')->setMethod($httpRequest->getMethod())->match($httpRequest->getUriPath());
+
+//        $response->end($return);
     }
 }
