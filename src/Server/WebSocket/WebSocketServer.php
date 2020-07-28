@@ -193,7 +193,7 @@ class WebSocketServer extends HttpServer
 
     public function onManagerStart($ws)
     {
-        swoole_set_process_name("{$this->process}:manager");
+        cli_set_process_title("{$this->process}:manager");
         echo "ManagerStart" . PHP_EOL;
     }
 
@@ -201,7 +201,7 @@ class WebSocketServer extends HttpServer
     {
         $this->wi = new WeChatIndex();
         $this->hp = new HttpIndex();
-        swoole_set_process_name("{$this->process}:work");
+        cli_set_process_title("{$this->process}:work");
         echo "WorkerStart" . PHP_EOL;
 
     }
