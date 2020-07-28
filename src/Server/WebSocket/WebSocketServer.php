@@ -17,6 +17,9 @@ class WebSocketServer extends HttpServer
     public function createServer()
     {
         \Co::set(['hook_flags' => SWOOLE_HOOK_TCP]);
+        $this->table = new \Swoole\Table(131072);
+        $this->table->column('fd',\Swoole\Table::TYPE_INT,4);
+        $this->table->create();
         $this->swooleServer = new SwooleServer($this->host, $this->port);
     }
 
@@ -50,13 +53,13 @@ class WebSocketServer extends HttpServer
 
     public function onOpen(SwooleServer $server, $request)
     {
-        $connect = Connections::init($request->fd, $request->server['remote_addr']);
+//        $connect = Connections::init($request->fd, $request->server['remote_addr']);
         echo "connect fd:{$request->fd} addr:{$request->server['remote_addr']}" . PHP_EOL;
     }
 
     public function onMessage(SwooleServer $ws, $frame)
     {
-        $connets = (Connections::get($frame->fd));
+//        $connets = (Connections::get($frame->fd));
         try {
             $wechatIndex = new WeChatIndex();
             $receive_data = json_decode($frame->data, true);
@@ -72,33 +75,34 @@ class WebSocketServer extends HttpServer
                     return;
                 }
                 go(function () use ($ws, $wechatIndex, $receive_data, $frame, $taskData) {
-                    $connets = Connections::set($frame->fd, $receive_data['uid']);
+                    Connections::set($this->table,$frame->fd, $receive_data['uid']);
                     $finish = array_merge(['toFd' => [$frame->fd], 'msg' => json_encode(['name' => $receive_data['uid'], 'data' => 'bind ok'])], $taskData);
                     $finish['type'] = 'bind';
                     $finish['uid'] = $receive_data['uid'];
                     $ws->task($finish);
                 });
             } else {
+
                 //判断是否bind
-                if ($wechatIndex->isBind($frame->fd)) {
-                    $toFd = $wechatIndex->index($this->ws, $receive_data);
+                /*if ($wechatIndex->isBind($frame->fd)) {
+                    $toFd = $wechatIndex->index($ws, $receive_data);
                     $toMsg = array_merge(['toFd' => $toFd, 'msg' => $frame->data], $taskData);
-                    $this->ws->task($toMsg);
+                    $ws->task($toMsg);
                 } else {
                     $clentInfo = $this->ws->getClientInfo($frame->fd);
                     if (strcasecmp($clentInfo['remote_ip'], '127.0.0.1') == 0) {
-                        $toFd = $wechatIndex->index($this->ws, $receive_data);
+                        $toFd = $wechatIndex->index($ws, $receive_data);
                         $toMsg = array_merge(['toFd' => $toFd, 'msg' => $frame->data], $taskData);
-                        $this->ws->task($toMsg);
+                        $ws->task($toMsg);
                     } else {
                         $finish = ['toFd' => [$frame->fd], 'msg' => json_encode(['message' => 'unbounded', 'from' => $receive_data])];
                         echo "unbounded:" . json_encode($finish) . 'IP:' . $clentInfo['remote_ip'] . PHP_EOL;
-                        if ($this->ws->isEstablished($frame->fd)) {
-                            $this->ws->disconnect($frame->fd);
+                        if ($ws->isEstablished($frame->fd)) {
+                            $ws->disconnect($frame->fd);
                         }
                     }
 
-                }
+                }*/
             }
         } catch (\Error $e) {
             echo "error message :" . $e->getMessage() . PHP_EOL;
@@ -110,7 +114,7 @@ class WebSocketServer extends HttpServer
 
     public function onRequest($request, $response)
     {
-        echo 'run-ms-start:' . getMillisecond();
+        echo 'run-ms-start:' . getMillisecond().PHP_EOL;
         if (strcmp($request->server['request_uri'], '/chatMsg/send') == 0) {
             $msgData = $request->rawContent();
             $msgData = $this->wi->checkSend($msgData);
@@ -125,7 +129,7 @@ class WebSocketServer extends HttpServer
         } else {
             $this->hp->index($request, $response);
         }
-        echo 'run-ms-end:' . getMillisecond();
+        echo 'run-ms-end:' . getMillisecond().PHP_EOL;
     }
 
     public function onTask($serv, \Swoole\Server\Task $task)
@@ -142,7 +146,7 @@ class WebSocketServer extends HttpServer
                 }
             } elseif (isset($data['send'])) {
                 $msg = $data['msg'];
-                $toFd = $this->wi->getFds($msg);
+                $toFd = $this->wi->getFds($this->table,$msg['to_uid']);
                 go(function () use ($serv, $toFd, $msg) {
                     foreach ($toFd as $uid => $value) {
                         if ($serv->isEstablished($value) and !empty($value)) {
@@ -170,9 +174,9 @@ class WebSocketServer extends HttpServer
 
     public function onClose($ser, $fd)
     {
-        $connets = (Connections::get($fd));
-        Connections::del($fd);
-        echo 'close user:' . array_keys($connets, $fd)[0] . " fd:{$fd} " . PHP_EOL;
+//        $connets = (Connections::get($fd));
+        $res = Connections::delByFd($this->table,$fd);
+        echo "close user: {$res['uid']} -- fd:{$fd} " . PHP_EOL;
     }
 
     public function onStart($ws)

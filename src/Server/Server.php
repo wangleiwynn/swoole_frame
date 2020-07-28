@@ -28,6 +28,8 @@ abstract class Server
     protected $process;
 
     protected $watchFile = false;
+
+    protected $table;
     /**
      * 用于记录系统pid的信息
      * @var string

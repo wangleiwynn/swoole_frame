@@ -1,5 +1,7 @@
 <?php
+
 namespace SwoStar\Server\WebSocket;
+use \Swoole\Table;
 
 class Connections
 {
@@ -14,6 +16,8 @@ class Connections
      * @var array
      */
     protected static $connections = [];
+    protected static $uids = [];
+//    protected $table;
 
     public static function init($fd, $addr)
     {
@@ -21,17 +25,45 @@ class Connections
         return self::$connections[$fd];
     }
 
-    public static function get($fd)
+    public static function get($table,$uids)
     {
-        return self::$connections[$fd];
+        foreach ($uids as $uid){
+            $toFd[$uid] = $table->get($uid,'fd');
+        }
+        return $toFd;
+//        return self::$connections[$fd];
     }
-    public static function set($fd,$uid){
-        self::$connections[$fd][$uid]=$fd;
-        return self::$connections[$fd];
+
+    public static function set($table,$fd,$uid)
+    {
+        /*self::$connections[$fd][$uid] = $fd;
+        self::$uids[$uid] = [$fd];
+        return [self::$connections[$fd],self::$uids[$uid]];*/
+        $table->set($uid,['fd'=>$fd]);
     }
 
     public static function del($fd)
     {
+        $con = self::$connections[$fd];
+        $uid = array_search($fd, $con);
         unset(self::$connections[$fd]);
+        if (!empty($uid))
+            unset(self::$uids[$uid]);
     }
+
+    public static function delByFd($table,$fd)
+    {
+        foreach ($table as $key => $row){
+            if($row['fd']===$fd){
+                if($table->del($key)){
+                    $res = ['uid'=>$key];
+                }else{
+                    echo "del table data err uid:{$key}--fd:{$fd}";
+                }
+                break;
+            }
+        }
+        return $res;
+    }
+
 }
