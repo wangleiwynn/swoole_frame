@@ -33,13 +33,14 @@ class Event
      * 收集事件
      */
     public static function collectEvent(){
-        $files = glob(EVENT_PATH."/*.php");
+        $basePath = app()->getBasePath();
+        $files = glob("{$basePath}/Controller/Listener/*.php");
         if (!empty($files)) {
             foreach ($files as $dir => $fileName) {
                 include $fileName;
                 $fileName=explode('/',$fileName);
                 $className=explode('.',end($fileName))[0];
-                $nameSpace='App\\Listener\\'.$className;
+                $nameSpace='Controller\\Listener\\'.$className;
                 if(class_exists($nameSpace)){
                     $obj=new $nameSpace;
                     //希望得到自己定义的事件名称,通过反射读取类当中的文档注释
