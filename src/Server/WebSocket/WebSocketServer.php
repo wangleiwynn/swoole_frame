@@ -31,7 +31,8 @@ class WebSocketServer extends HttpServer
             'message' => "onMessage",
             'close' => "onClose",
             'task' => "onTask",
-            'finish' => "onFinish"
+            'finish' => "onFinish",
+            'workerExit'=>"onWorkerExit"
         ]);
     }
 
@@ -71,7 +72,7 @@ class WebSocketServer extends HttpServer
 
     public function onRequest($request, $response)
     {
-//        echo 'run-ms-start:' . getMillisecond().PHP_EOL;
+        echo "{$request->server['request_uri']}:run-ms-start:" . getMillisecond().PHP_EOL;
         try {
             Event::trigger('request', [$request, $response, $this->swooleServer]);
         } catch (\Throwable $e) {
@@ -80,7 +81,7 @@ class WebSocketServer extends HttpServer
             echo "error line:" . $e->getLine() . PHP_EOL;
         }
 
-//        echo 'run-ms-end:' . getMillisecond().PHP_EOL;
+        echo "{$request->server['request_uri']}:run-ms-end:" . getMillisecond().PHP_EOL;
     }
 
     public function onTask($serv, \Swoole\Server\Task $task)
@@ -126,5 +127,16 @@ class WebSocketServer extends HttpServer
     {
         cli_set_process_title("{$this->process}:work");
         echo "WorkerStart" . PHP_EOL;
+    }
+    public function onWorkerExit($server,$worker_id)
+    {
+        /*\Swoole\Timer::clearAll();
+        \swoole_event_del($this->process->pipe);*/
+        /*$redisState = $serv->redis->getState();
+        if ($redisState == \Swoole\Redis::STATE_READY or $redisState == \Swoole\Redis::STATE_SUBSCRIBE)
+        {
+            $serv->redis->close();
+        }*/
+        var_dump(__METHOD__,$worker_id);
     }
 }

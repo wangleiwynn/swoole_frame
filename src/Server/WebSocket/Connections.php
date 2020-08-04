@@ -27,18 +27,15 @@ class Connections
 
     public static function get($table,$uids)
     {
+
         foreach ($uids as $uid){
             $toFd[$uid] = $table->get($uid,'fd');
         }
         return $toFd;
-//        return self::$connections[$fd];
     }
 
     public static function set($table,$fd,$uid)
     {
-        /*self::$connections[$fd][$uid] = $fd;
-        self::$uids[$uid] = [$fd];
-        return [self::$connections[$fd],self::$uids[$uid]];*/
         $table->set($uid,['fd'=>$fd]);
     }
 
@@ -53,6 +50,7 @@ class Connections
 
     public static function delByFd($table,$fd)
     {
+        $res=[];
         foreach ($table as $key => $row){
             if($row['fd']===$fd){
                 if($table->del($key)){
